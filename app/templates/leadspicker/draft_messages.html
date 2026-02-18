@@ -1,0 +1,219 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Draft messages — {{ path_name }}</title>
+  <style>
+    body { font-family: system-ui, Arial, sans-serif; margin: 24px; }
+    .card { border:1px solid #ddd; border-radius:16px; padding:18px 20px; max-width:1100px; margin: 0 auto 16px; }
+    .btn { padding:10px 18px; border-radius:14px; cursor:pointer; text-decoration:none; display:inline-block; }
+    .header-row { display:flex; align-items:baseline; gap: 10px; flex-wrap:wrap; }
+    .title { font-weight:800; font-size:26px; color:#5b2aa7; }
+    .muted { color:#666; }
+    .counter { font-size: 12px; color:#444; margin-left:auto; }
+    .hl { background: #fff3a3; padding: 0 2px; border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="header-row">
+      <div class="title">
+        {% if author_name and author_url %}
+          <a href="{{ author_url }}" target="_blank" rel="noopener noreferrer" style="color:#5b2aa7; text-decoration:none;">{{ author_name }}</a>
+        {% else %}
+          {{ author_name or 'Unknown Author' }}
+        {% endif %}
+      </div>
+      <div style="color:#8a8a8a; font-size:18px;">at</div>
+      <div class="title">
+        {% if company_name and company_url %}
+          <a href="{{ company_url }}" target="_blank" rel="noopener noreferrer" style="color:#5b2aa7; text-decoration:none;">{{ company_name }}</a>
+        {% else %}
+          {{ company_name or 'Unknown Company' }}
+        {% endif %}
+      </div>
+      <span style="margin-left:auto; color:#888; font-size:14px;">{{ idx }} / {{ total }}</span>
+    </div>
+    {% if author_statement %}
+      <div class="muted" style="margin-top:4px;">{{ author_statement }}</div>
+    {% elif author_conflict %}
+      <div class="muted" style="margin-top:4px;">
+        The author of this post is
+        {% if author_lp_url %}
+          <a href="{{ author_lp_url }}" target="_blank" rel="noopener noreferrer" style="color:#1976d2;">{{ author_lp_full_name }}</a>
+        {% else %}
+          {{ author_lp_full_name }}
+        {% endif %}
+        {% if author_lp_relation %}
+          who is a {{ author_lp_relation }}
+        {% endif %}
+        {% if author_lp_company %}
+          at
+          {% if author_lp_company_url %}
+            <a href="{{ author_lp_company_url }}" target="_blank" rel="noopener noreferrer" style="color:#1976d2;">{{ author_lp_company }}</a>
+          {% else %}
+            {{ author_lp_company }}
+          {% endif %}
+        {% endif %}
+        .
+      </div>
+    {% endif %}
+    {% if company_statement %}
+      <div class="muted" style="margin-top:4px;">{{ company_statement }}</div>
+    {% endif %}
+
+    <div style="display:flex; gap:14px; margin-top:14px; flex-wrap:wrap;">
+      {% if post_url %}
+        <a href="{{ post_url }}" target="_blank" rel="noopener noreferrer"
+           class="btn" style="background:#d9d9d9; color:#333;">
+          Open LinkedIn post
+        </a>
+      {% else %}
+        <button class="btn" disabled style="background:#d9d9d9; color:#555;">Open LinkedIn post</button>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card" style="white-space: pre-wrap; line-height:1.4;">
+    {{ post_text | highlight_lp_keywords | safe }}
+  </div>
+
+  <div class="card">
+    <form method="post" style="display:flex; flex-direction:column; gap:12px;">
+      <input type="hidden" name="row_idx" value="{{ idx - 1 }}" />
+
+      <div id="preText" class="muted">Hi {{ first_name }} thank you for accepting my connection request.</div>
+
+      <label for="message_text"><strong>Message draft</strong></label>
+      <textarea id="message_text" name="message_text" rows="8" style="width:100%; padding:10px; border-radius:10px; border:1px solid #ccc;">{{ message_text }}</textarea>
+      <div>
+        <button type="button" id="addRandomContent" class="btn" style="background:#ffa726; color:#000; border:none; margin-top:6px;">Regenerate random content</button>
+      </div>
+
+      <div id="postText" class="muted">All the best, Tom</div>
+
+      <div style="display:flex; align-items:center; gap:10px; margin-top:6px;">
+        <div class="counter">Characters total (greeting + draft + closing): <span id="charCount">0</span></div>
+        <span style="flex:1"></span>
+        <!-- NEW: open enrich button -->
+        {% if not enrich_open %}
+          <button name="action" value="open_enrich" class="btn" type="submit" style="background:#1976d2; color:#fff; border:none;">Edit lead details</button>
+        {% endif %}
+      </div>
+
+      <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:6px;">
+        <button name="action" value="save_draft" class="btn" type="submit" style="background:#5b2aa7; color:#fff; border:none;">Save draft</button>
+        <button name="action" value="prev" class="btn" type="submit" style="background:#d9d9d9; color:#333; border:none;">Back</button>
+        <button name="action" value="next" class="btn" type="submit" style="background:#d9d9d9; color:#333; border:none;">Next</button>
+        <button name="action" value="finish_drafting" class="btn" type="submit" style="background:#4caf50; color:#fff; border:none;">Finish drafting</button>
+        <a href="{{ url_for('leadspicker_draft_edit') }}" class="btn" style="background:#1976d2; color:#fff;">Edit drafted records</a>
+      </div>
+    </form>
+  </div>
+
+  <!-- NEW: Enrich panel -->
+  {% if enrich_open %}
+  <div class="card">
+    <form method="post" style="display:flex; flex-direction:column; gap:10px;">
+      <div style="font-weight:700; font-size:18px; color:#5b2aa7;">Edit lead details</div>
+
+      <label><strong>Full name</strong></label>
+      <input type="text" name="enrich_full_name" value="{{ enrich_full_name }}" style="padding:8px; border-radius:10px; border:1px solid #ccc;" />
+
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <div style="flex:1; min-width:140px;">
+          <label><strong>First name</strong></label>
+          <input type="text" name="enrich_first_name" value="{{ enrich_first_name }}" style="width:100%; padding:8px; border-radius:10px; border:1px solid #ccc;" />
+        </div>
+        <div style="flex:1; min-width:140px;">
+          <label><strong>Last name</strong></label>
+          <input type="text" name="enrich_last_name" value="{{ enrich_last_name }}" style="width:100%; padding:8px; border-radius:10px; border:1px solid #ccc;" />
+        </div>
+      </div>
+
+      <label><strong>LinkedIn (person)</strong></label>
+      <input type="url" name="enrich_linkedin" value="{{ enrich_linkedin }}" style="padding:8px; border-radius:10px; border:1px solid #ccc;" />
+
+      <label><strong>Relation to the company</strong></label>
+      <input type="text" name="enrich_relation" value="{{ enrich_relation }}" style="padding:8px; border-radius:10px; border:1px solid #ccc;" />
+
+      <label><strong>Company name</strong></label>
+      <input type="text" name="enrich_company_name" value="{{ enrich_company_name }}" style="padding:8px; border-radius:10px; border:1px solid #ccc;" />
+
+      <label><strong>Company website</strong></label>
+      <input type="url" name="enrich_company_website" value="{{ enrich_company_website }}" style="padding:8px; border-radius:10px; border:1px solid #ccc;" />
+
+      <label><strong>Company LinkedIn</strong></label>
+      <input type="url" name="enrich_company_linkedin" value="{{ enrich_company_linkedin }}" style="padding:8px; border-radius:10px; border:1px solid #ccc;" />
+
+      <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:8px;">
+        <button name="action" value="save_enrich" class="btn" type="submit" style="background:#5b2aa7; color:#fff; border:none;">Save details</button>
+        <button name="action" value="close_enrich" class="btn" type="submit" style="background:#d9d9d9; color:#333; border:none;">Close</button>
+      </div>
+    </form>
+  </div>
+  {% endif %}
+
+  <script>
+    (function(){
+      const textarea = document.getElementById('message_text');
+      const pre = document.getElementById('preText')?.textContent ?? '';
+      const post = document.getElementById('postText')?.textContent ?? '';
+      const out = document.getElementById('charCount');
+      const companyName = "{{ company_name|replace('\"','\\\"') }}";
+
+      const templates = [
+        {u:"At US Launchpad, we focus on supporting startups from around the world as they land and grow in Czechia, handling compliance and operations so that executives can concentrate on product and business. If this sounds interesting, I would be happy to share more over a quick introductory call. Would you have a moment next week?", c:"If this sounds interesting, I would be happy to share more over a quick introductory call. Would you have a moment next week?"},
+        {u:"At US Launchpad, we have helped several international start-ups safely land and grow in the Czech Republic, taking care of compliance and other operational issues. Are you considering Czechia for your market expansion by any chance?", c:"If so, I would be happy to schedule a quick introductory call to share more about how US Launchpad could support COMPANY_NAME."},
+        {u:"At US Launchpad, we help companies establish and scale their operations in Prague, Czech Republic.", c:"If Czechia ever becomes part of your expansion plans, I would love to share more about our solutions and how US Launchpad could support COMPANY_NAME."},
+        {u:"At US Launchpad, we focus on supporting companies from all around the world smoothly land and scale in Czechia, taking care of compliance and operational matters and thus letting executives focus on product and business.", c:"If this sounds interesting, I would be happy to share more about our solutions over a quick introductory call. Do you have time sometime next week?"},
+        {u:"At US Launchpad, we have extensive experience supporting US companies as they land and scale in Czechia, taking care of their compliance and operational burdens.", c:"Would you be open to a quick introductory call, to share more, sometime next week?"},
+        {u:"I wanted to ask whether the Czech Republic might be part of these plans. If so, I’d love to tell you more about what we focus on at US Launchpad. We specialize in supporting international start-ups as they enter and scale their operations in Czechia, taking care of the compliance and operational burden so founders and executives can focus more on growth and product.", c:"If this sounds interesting, I’d be happy to explore how we could support COMPANY_NAME Czech journey too. Care for a quick introductory call?"},
+        {u:"Are you considering Czechia as a potential destination by any chance? At US Launchpad, we help startups from all around the world safely land and scale in Czechia, taking care of compliance and operational matters.", c:"If this sounds interesting, I would be happy to share more over a quick introductory call."},
+        {u:"At US Launchpad, we've helped several startups from all around the world safely land and scale in the Czech Republic, taking care of both compliance and operational matters, allowing founders to focus more on product and sales.", c:"If Czechia is a country that interests you, I would be happy to schedule a quick introductory call to share more about what we do."},
+        {u:"At US Launchpad, we have extensive experience supporting founders from all around the world on their Czechia expansion journey, taking care of compliance and operational burdens, and thus giving founders and executives more space to focus on sales and development activities.", c:"I would be happy to explore whether we could support COMPANY_NAME on this journey too. Care for a quick introductory call?"},
+        {u:"At US Launchpad, we focus on helping companies from all around the world safely land and grow in the Czech Republic.", c:"If Czechia is one of the countries you are interested in, I would like to schedule a call with you to share more about our solutions and how we have supported our other clients, as well as how we could support COMPANY_NAME too."},
+        {u:"At US Launchpad, we’ve supported several U.S. companies in scaling operations into Central Europe.", c:"I’d be happy to share more if that’s something COMPANY_NAME might be exploring. Do you have time for a quick call next week?"},
+        {u:"At US Launchpad, we specialize in helping companies from all around the world with their expansions to Czechia, taking care of compliance and operational burdens.", c:"If this sounds interesting, I would be happy to share more over a quick introductory call. Do you have time next week?"},
+        {u:"At US Launchpad, we focus on helping startups smoothly land and scale in Czechia, taking care of compliance and operational matters, allowing founders and executives to focus on product and business.", c:"If this sounds interesting, I would be happy to share more about our solutions over a quick introductory call. Are you free some time next week?"},
+        {u:"At US Launchpad, we focus on supporting startups from all around the world as they land and scale in Czechia, taking care of compliance and operations, thus letting founders and executives focus on product and sales.", c:"If this sounds interesting, I would be happy to schedule a quick call to share more about how we could support COMPANY_NAME."},
+        {u:"At US Launchpad, we specialize in supporting startups from all around the world as they land and scale here, in Czechia, taking care of operations and compliance.", c:"Is this something that might interest you? If so, I would be happy to share more over a quick introductory call."},
+        {u:"At US Launchpad, we focus on supporting US startups as they land and scale in Czechia, taking care of compliance and operations, thus freeing up founders and executives to focus on product and business.", c:"If this struck your interest, I would be happy to share more over a quick intro call. Would you have a moment some time next week?"}
+      ];
+
+      const replaceCompany = (text) => {
+        if (!text) return "";
+        const name = companyName && companyName.trim() ? companyName.trim() : "your company";
+        return text.replace(/COMAPNY_NAME/gi, name).replace(/COMPANY_NAME/gi, name);
+      };
+
+      const update = () => {
+        const draft = textarea?.value ?? '';
+        const total = (pre.length + draft.length + post.length);
+        if (out) out.textContent = total.toString();
+      };
+
+      const generateContent = () => {
+        if (!templates.length || !textarea) return;
+        const picked = templates[Math.floor(Math.random() * templates.length)];
+        const combined = `${picked.u} ${replaceCompany(picked.c)}`.trim();
+        textarea.value = combined;
+        update();
+      };
+
+      update();
+      if (textarea) {
+        textarea.addEventListener('input', update);
+        if ((textarea.value || "").trim() === "") {
+          generateContent();
+        }
+      }
+
+      const addBtn = document.getElementById('addRandomContent');
+      if (addBtn) {
+        addBtn.addEventListener('click', generateContent);
+      }
+    })();
+  </script>
+</body>
+</html>

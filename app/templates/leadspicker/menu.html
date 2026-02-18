@@ -1,0 +1,48 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Leadspicker – Choose pipeline</title>
+  <style>
+    body { font-family: 'Roboto', system-ui, sans-serif; display:flex; justify-content:center; align-items:center; height:100vh; margin:0; background:#f5efe4; }
+    .container { text-align:center; }
+    h1 { font-weight:700; margin-bottom:10px; }
+    h2 { font-weight:400; color:#555; margin-bottom:30px; }
+    .menu { display:flex; justify-content:center; gap:20px; flex-wrap:wrap; }
+    .menu button {
+      background:white;
+      border:2px solid #007BFF;
+      border-radius:10px;
+      padding:16px;
+      cursor:pointer;
+      width:220px;
+      height:120px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      transition:all 0.3s ease;
+      font-size:16px;
+    }
+    .menu button:hover { background:#007BFF; color:white; }
+    a { text-decoration:none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Leadspicker</h1>
+    <h2>Choose which post type to work on</h2>
+    <div class="menu">
+      <a href="{{ url_for('leadspicker') }}">
+        <button>Expansion – general post</button>
+      </a>
+      <a href="{{ url_for('leadspicker_czech') }}">
+        <button>Expansion – Czech-focused post</button>
+      </a>
+    </div>
+    <p style="margin-top:24px;">
+      <a href="{{ url_for('index') }}">← Back to Main Menu</a>
+    </p>
+  </div>
+</body>
+</html>
+

@@ -1,0 +1,39 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Leadspicker — Analysis Done</title>
+  <style>
+    body { font-family: system-ui, Arial, sans-serif; margin: 24px; }
+    .card { border:1px solid #ddd; border-radius:12px; padding:16px; max-width:700px; margin: 30px auto; text-align:center; }
+    a.button { display:inline-block; padding:10px 14px; border-radius:8px; border:1px solid #ccc; text-decoration:none; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Leadspicker Labeling Complete</h2>
+
+    <p><strong>Analysis file:</strong> {{ analysis_name or analysis_path }}</p>
+
+    <ul>
+      <li>Labeled rows (y or n): {{ labeled_rows }}</li>
+      <li>Relevant rows (y): {{ relevant_rows }}</li>
+      <li>Memory before append: {{ memory_stats.existing }}</li>
+      <li>Added to memory: {{ memory_stats.added }}</li>
+      <li>Skipped (empty key): {{ memory_stats.skipped_empty_key }}</li>
+      <li>Memory total after append: {{ memory_stats.final_total }}</li>
+    </ul>
+
+    {% if enrich_name %}
+      <p><strong>Relevant export:</strong> {{ enrich_name }} (saved under data/memory/lp/enrichment_of_relevant)</p>
+    {% else %}
+      <p><strong>Relevant export:</strong> No rows with relevant = y, nothing exported.</p>
+    {% endif %}
+
+    <p style="margin-top: 0.75rem;">
+      <a href="{{ url_for('leadspicker') }}">Back to Leadspicker</a> |
+      <a href="{{ url_for('leadspicker_analyze') }}">Back to Analysis</a>
+    </p>
+  </div>
+</body>
+</html>

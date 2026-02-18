@@ -1,0 +1,166 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Crunchbase — Drafting</title>
+  <style>
+    body { font-family: system-ui, Arial, sans-serif; margin: 24px; background: #f7f5f0; }
+    h1 { margin: 0 0 8px; }
+    .sub { color: #555; margin: 0 0 16px; text-align:center; }
+    .wrapper { display: grid; grid-template-columns: 260px minmax(520px, 1fr) 260px; gap: 14px; align-items:start; }
+    .panel { background: #fff; border: 1px solid #e1dbd0; border-radius: 12px; padding: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.04); }
+    .center-panel { background: #fff; border: 1px solid #d8d1c4; border-radius: 16px; padding: 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
+    .two-col { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+    label { font-weight: 600; color: #444; display:block; margin-bottom:6px; }
+    input[type="text"], textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; }
+    textarea { min-height: 160px; }
+    .btn { padding: 12px 14px; border-radius: 12px; border: 1px solid #ccc; background: #fff; cursor: pointer; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; text-align:center; }
+    .primary { background: #5b2aa7; color: #fff; border-color: #5b2aa7; }
+    .ghost { background: #fff; color: #5b2aa7; border-color: #5b2aa7; }
+    .danger { background: #c0392b; color: #fff; border-color: #c0392b; }
+    .muted { background:#f1f3f4; color:#444; border-color:#ccc; }
+    .links { display: flex; flex-direction: column; gap: 10px; }
+    .links .btn { width: 100%; box-sizing: border-box; }
+    .chip { padding: 6px 10px; border-radius: 999px; background: #f1f3f4; color: #444; font-size: 12px; }
+    .info { text-align:center; margin-bottom: 14px; }
+    .info h2 { margin: 0; font-size: 28px; color: #2d1b53; }
+    .info .meta { color:#555; font-size: 14px; line-height:1.5; margin-top:6px; }
+    .controls-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; width: 100%; }
+  </style>
+</head>
+<body>
+  {% set company_li_raw = (row.get('Company LinkedIn') or '')|trim %}
+  {% set cb_people_raw = (row.get('CB people link') or '')|trim %}
+  {% set cb_fin_raw   = (row.get('CB financials link') or '')|trim %}
+  {% set cb_news_raw  = (row.get('CB news link') or '')|trim %}
+  {% set cb_prof_raw  = (row.get('Crunchbase Profile') or '')|trim %}
+  {% set company_site_raw = (row.get('Company Website') or '')|trim %}
+
+  {% macro normalize(u) -%}
+    {%- if not u %}{{ '' }}{%- elif u.startswith('http://') or u.startswith('https://') %}{{ u }}{%- else %}https://{{ u.lstrip('/') }}{%- endif -%}
+  {%- endmacro %}
+
+  {% set company_li = normalize(company_li_raw) %}
+  {% set cb_people = normalize(cb_people_raw) %}
+  {% set cb_fin   = normalize(cb_fin_raw) %}
+  {% set cb_news  = normalize(cb_news_raw) %}
+  {% set cb_prof  = normalize(cb_prof_raw) %}
+  {% set company_site = normalize(company_site_raw) %}
+  {% set name = (row.get('Name') or '')|trim %}
+  {% set series = (row.get('Series') or '')|trim %}
+  {% set last_funding = (row.get('Last Funding Date') or '')|trim %}
+  {% set industries = (row.get('Industries CB') or '')|trim %}
+  {% set hq = (row.get('HQ') or '')|trim %}
+  {% set desc = (row.get('Description') or '')|trim %}
+
+  {% set kw_partner   = 'partnership' %}
+  {% set kw_expand    = 'expansion' %}
+  {% set kw_ceo       = 'ceo' %}
+  {% set kw_founder   = 'founder' %}
+  {% set kw_region    = 'czech OR slovak OR prague' %}
+  {% set kw_strategy  = 'strategy' %}
+  {% set url_partner  = company_li ~ '/people/?keywords=' ~ kw_partner if company_li else '' %}
+  {% set url_expand   = company_li ~ '/people/?keywords=' ~ kw_expand if company_li else '' %}
+  {% set url_ceo      = company_li ~ '/people/?keywords=' ~ kw_ceo if company_li else '' %}
+  {% set url_founder  = company_li ~ '/people/?keywords=' ~ kw_founder if company_li else '' %}
+  {% set url_region   = company_li ~ '/people/?keywords=' ~ kw_region|replace(' ', '%20') if company_li else '' %}
+  {% set url_strategy = company_li ~ '/people/?keywords=' ~ kw_strategy if company_li else '' %}
+
+  <h1 style="text-align:center;">Crunchbase — Drafting</h1>
+  <div class="sub">
+    <span>Row {{ progress.index }} / {{ progress.total }}</span>
+    | <a href="{{ url_for('crunchbase') }}">Back to Crunchbase menu</a>
+    {% if row.get('Status') %} | <span class="chip">Status: {{ row.get('Status') }}</span>{% endif %}
+  </div>
+
+  <div class="info">
+    <h2>{{ name or 'Unknown company' }}</h2>
+    <div class="meta">
+      {% if series %}<div><strong>Series:</strong> {{ series }}</div>{% endif %}
+      {% if last_funding %}<div><strong>Last Funding Date:</strong> {{ last_funding }}</div>{% endif %}
+      {% if industries %}<div><strong>Industries:</strong> {{ industries }}</div>{% endif %}
+      {% if hq %}<div><strong>HQ:</strong> {{ hq }}</div>{% endif %}
+      {% if desc %}<div style="margin-top:6px;">{{ desc }}</div>{% endif %}
+    </div>
+  </div>
+
+  <div class="wrapper">
+    <div class="panel">
+      <h3 style="margin-top:0;">Quick links</h3>
+      <div class="links">
+        {% if cb_people %}<a class="btn ghost" href="{{ cb_people }}" target="_blank">CB people</a>{% endif %}
+        {% if cb_fin %}<a class="btn ghost" href="{{ cb_fin }}" target="_blank">CB financials</a>{% endif %}
+        {% if cb_news %}<a class="btn ghost" href="{{ cb_news }}" target="_blank">CB news</a>{% endif %}
+        {% if company_li %}<a class="btn ghost" href="{{ company_li }}" target="_blank">Company LinkedIn</a>{% endif %}
+        {% if cb_prof %}<a class="btn ghost" href="{{ cb_prof }}" target="_blank">Crunchbase Profile</a>{% endif %}
+        {% if company_site %}<a class="btn ghost" href="{{ company_site }}" target="_blank">Company Website</a>{% endif %}
+        <button class="btn primary" type="button" onclick="openAllSearches(['{{ cb_people }}','{{ cb_fin }}','{{ cb_news }}','{{ company_li }}','{{ cb_prof }}','{{ company_site }}'])">Open all</button>
+      </div>
+    </div>
+
+    <div class="center-panel">
+      <div class="two-col">
+        <div>
+          <label for="main_contact">Main Contact</label>
+          <input type="text" id="main_contact" form="editForm" name="main_contact" value="{{ row.get('Main Contact','') }}">
+        </div>
+        <div>
+          <label for="secondary_contact_1">Secondary Contact #1</label>
+          <input type="text" id="secondary_contact_1" form="editForm" name="secondary_contact_1" value="{{ row.get('Secondary Contact #1','') }}">
+        </div>
+        <div>
+          <label for="secondary_contact_2">Secondary Contact #2</label>
+          <input type="text" id="secondary_contact_2" form="editForm" name="secondary_contact_2" value="{{ row.get('Secondary Contact #2','') }}">
+        </div>
+        <div>
+          <label for="secondary_contact_3">Secondary Contact #3</label>
+          <input type="text" id="secondary_contact_3" form="editForm" name="secondary_contact_3" value="{{ row.get('Secondary Contact #3','') }}">
+        </div>
+      </div>
+
+      <div style="margin-top:16px;">
+        <label for="message_fin">Message fin</label>
+        <textarea id="message_fin" form="editForm" name="message_fin">{{ row.get('Message fin') or row.get('Message draft') or '' }}</textarea>
+      </div>
+
+      <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:14px;">
+        <form id="editForm" method="post" class="controls-grid">
+          <input type="hidden" name="row_idx" value="{{ row_idx }}">
+          <button class="btn primary" type="submit" name="action" value="save_fields">Save & next</button>
+          <button class="btn ghost" type="submit" name="action" value="save_fields_stay">Save & stay</button>
+          <button class="btn" type="submit" name="action" value="prev">Previous</button>
+          <button class="btn" type="submit" name="action" value="skip">Next</button>
+          <button class="btn danger" type="submit" name="action" value="eliminate">Eliminate</button>
+          <button class="btn muted" type="submit" name="action" value="uneliminate">Undo eliminate</button>
+        </form>
+        <form method="post" style="margin-left:auto;">
+          <input type="hidden" name="action" value="finish_labeling">
+          <button class="btn" type="submit">Finish (export)</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="panel">
+      {% if company_li %}
+        <h3 style="margin-top:0;">LinkedIn people search</h3>
+        <div class="links">
+          {% for label, url in [('Partnership', url_partner), ('Expansion', url_expand), ('CEO', url_ceo), ('Founder', url_founder), ('Strategy', url_strategy), ('Region', url_region)] %}
+            {% if url %}<a class="btn" style="background:#e8e2ff; color:#4a2bb8;" href="{{ url }}" target="_blank">{{ label }}</a>{% endif %}
+          {% endfor %}
+          <button class="btn primary" type="button" onclick="openAllSearches(['{{ url_partner }}','{{ url_expand }}','{{ url_ceo }}','{{ url_founder }}','{{ url_strategy }}','{{ url_region }}'])">Open all</button>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div style="margin-top:10px; color:#777; text-align:center;">
+    <small>Analysis file: {{ analysis_path }}</small>
+  </div>
+
+  <script>
+    function openAllSearches(urls) {
+      (urls || []).forEach(function(u) { if (u) { window.open(u, "_blank"); } });
+    }
+  </script>
+</body>
+</html>

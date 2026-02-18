@@ -1,0 +1,181 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Crunchbase</title>
+  <style>
+    body { font-family: system-ui, Arial, sans-serif; margin: 24px; background: #f6f4f0; }
+    h1 { margin: 0 0 6px; }
+    p.sub { margin: 0 0 18px; color: #555; }
+    .row { display: flex; gap: 16px; flex-wrap: wrap; align-items: stretch; }
+    .card { background: #fff; border: 1px solid #e2ddd4; border-radius: 12px; padding: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.04); flex: 1 1 280px; }
+    .card h3 { margin-top: 0; }
+    .msg { margin: 12px 0 16px; padding: 10px 12px; background: #eef6ff; border: 1px solid #c8ddff; border-radius: 8px; color: #1f4b99; }
+    form { margin: 0; }
+    input[type="file"], select, input[type="text"] { padding: 8px; border: 1px solid #ccc; border-radius: 8px; width: 100%; box-sizing: border-box; }
+    button { padding: 10px 14px; border-radius: 8px; border: 1px solid #5b2aa7; background: #5b2aa7; color: #fff; cursor: pointer; }
+    button.ghost { background: #fff; color: #5b2aa7; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .hint { margin: 8px 0 0; color: #777; font-size: 13px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 12px; }
+    th, td { border: 1px solid #eee; padding: 6px 8px; font-size: 14px; height: 46px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: top; }
+    th { background: #fafafa; text-align: left; }
+    .table-wrap { overflow: auto; }
+    .next-steps ul { padding-left: 18px; margin: 6px 0 0; }
+    .next-steps li { margin: 4px 0; }
+    .footer { margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <h1>Crunchbase — Import</h1>
+  <p class="sub">Follow the same flow as Leadspicker: ingest, stage, dedupe, then label.</p>
+
+  {% with msgs = get_flashed_messages(with_categories=true) %}
+    {% if msgs %}
+      <div class="card" style="background:#fff8e6; border:1px solid #f1d8a8; color:#7a4b00; margin-bottom:12px;">
+        {% for category, msg in msgs %}
+          <div style="padding:6px 8px; border-bottom:1px solid #f1d8a8; {% if loop.last %}border-bottom:0{% endif %};">
+            <strong>{{ category|capitalize }}:</strong> {{ msg }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  {% if message %}<div class="msg">{{ message }}</div>{% endif %}
+
+  <div class="row">
+    <div class="card">
+      <h3>Fetch from Airtable (Crunchbase Source)</h3>
+      <p>Pull rows from the “Crunchbase Source” Airtable table using the Status field.</p>
+      <form method="post" style="display:flex; flex-direction:column; gap:8px;">
+        <input type="hidden" name="action" value="airtable_fetch">
+
+        <label for="status_filter"><strong>Status filter</strong> (matches Status field)</label>
+        <input type="text" id="status_filter" name="status_filter" value="Longlist" placeholder="Longlist">
+
+        <label for="view"><strong>View</strong> (optional)</label>
+        <input type="text" id="view" name="view" placeholder="Use an Airtable view">
+
+        <label for="max_records"><strong>Max records</strong> (optional)</label>
+        <input type="text" id="max_records" name="max_records" placeholder="e.g. 200">
+
+        <label style="display:flex; gap:8px; align-items:center;">
+          <input type="checkbox" name="contact_enriched_zero" value="1">
+          <span>Only rows where <em>Contact enriched</em> = 0</span>
+        </label>
+
+        <button type="submit">Fetch & Stage</button>
+      </form>
+      <p class="hint">Uses AIRTABLE_API_KEY; table id is resolved inside the helper.</p>
+    </div>
+
+    <div class="card">
+      <h3>Upload CSV export</h3>
+      <form method="post" enctype="multipart/form-data">
+        <input type="hidden" name="action" value="manual">
+        <input type="file" name="file" accept=".csv">
+        <div style="margin-top:8px;">
+          <button type="submit">Upload & Preview</button>
+        </div>
+      </form>
+      <p class="hint">Expected delimiter: “;”. Files are staged under {{ config.CB_STAGE_DIR if config is defined else "data/staging/crunchbase" }}.</p>
+    </div>
+
+    <div class="card">
+      <h3>Staged files</h3>
+      <form method="post" style="display:flex; flex-direction:column; gap:8px;">
+        <input type="hidden" name="action" value="load_stage">
+        <label for="stage_file"><strong>Pick a staged CSV</strong></label>
+        <select id="stage_file" name="stage_file">
+          {% for f in stage_files or [] %}
+            <option value="{{ f.name }}" {% if f.name == selected_stage %}selected{% endif %}>{{ f.name }}</option>
+          {% endfor %}
+          {% if not stage_files or stage_files|length == 0 %}
+            <option disabled selected>No staged files yet</option>
+          {% endif %}
+        </select>
+        <button type="submit" {% if not stage_files or stage_files|length == 0 %}disabled{% endif %}>Load preview</button>
+      </form>
+      <p class="hint">Folder: {{ config.CB_STAGE_DIR if config is defined else "data/staging/crunchbase" }}</p>
+    </div>
+  </div>
+
+  {% if rows and rows|length %}
+    <section class="card" style="margin-top:16px;">
+      <h3>Preview (first {{ rows|length }} rows)</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              {% for c in columns %}<th>{{ c }}</th>{% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in rows %}
+              <tr>
+                {% for c in columns %}<td title="{{ r.get(c, '') }}">{{ r.get(c, "") }}</td>{% endfor %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  {% endif %}
+
+  <section class="card next-steps" style="margin-top:16px;">
+    <h3>Next steps (mirroring Leadspicker)</h3>
+    <ul>
+      <li>Normalize exported fields to the master schema.</li>
+      <li>Spin up a labeling view for relevance + enrichment.</li>
+      <li>Draft outreach messages and push back to CRM / Airtable.</li>
+    </ul>
+    <p class="hint">These steps will hook into the existing master_log and labeling memory as we build them out.</p>
+  </section>
+
+  <section class="card" style="margin-top:16px;">
+    <h3>Analysis (labeling)</h3>
+    <form method="post" style="margin-bottom: 0.75rem;">
+      <input type="hidden" name="action" value="start_analysis">
+      <button type="submit" {% if not ready_to_analyze and not current_analysis_name %}disabled{% endif %}>Start analysis</button>
+      {% if current_analysis_name %}
+        <span style="margin-left: 8px; color:#555;">Current analysis file: {{ current_analysis_name }}</span>
+      {% else %}
+        <span style="margin-left: 8px; color:#999;">Import or fetch data to create a fresh analysis file.</span>
+      {% endif %}
+    </form>
+
+    <form method="post" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+      <input type="hidden" name="action" value="load_analysis">
+      <label for="analysis_path"><strong>Load existing analysis</strong></label>
+      <select id="analysis_path" name="analysis_path">
+        {% for f in recent_analysis_files %}
+          <option value="{{ f }}">{{ f.name }}</option>
+        {% endfor %}
+        {% if not recent_analysis_files or recent_analysis_files|length == 0 %}
+          <option disabled selected>No files in cb/analyses</option>
+        {% endif %}
+      </select>
+      <button type="submit">Load</button>
+    </form>
+    <p class="hint">Folder: {{ config.CB_ANALYSES_DIR if config is defined else "data/airtable/analyzed" }}</p>
+  </section>
+
+  <section class="card" style="margin-top:16px;">
+    <h3>Push updates</h3>
+    <form method="post" style="display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
+      <input type="hidden" name="action" value="push_updates">
+      <label><input type="checkbox" name="push_airtable" value="1" checked> Airtable</label>
+      <label><input type="checkbox" name="push_leadspicker" value="1"> Leadspicker</label>
+      <label for="lp_project_id"><strong>Leadspicker project ID</strong></label>
+      <input type="text" id="lp_project_id" name="lp_project_id" value="18009" style="width:100px; padding:6px 8px; border-radius:8px; border:1px solid #ccc;">
+      <button type="submit">Push</button>
+    </form>
+    <p class="hint">Pushes current analysis rows back to Airtable (_id required) and to Leadspicker (best-effort mapping: Message draft, company name, company LinkedIn, company website, main contact).</p>
+  </section>
+
+  <div class="footer">
+    <a href="{{ url_for('index') }}">Back to Main Menu</a>
+  </div>
+</body>
+</html>

@@ -1,0 +1,352 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Leadspicker — Analyze</title>
+  <style>
+    body { font-family: system-ui, Arial, sans-serif; margin: 24px; }
+    .card { border:1px solid #ddd; border-radius:16px; padding:18px 20px; max-width:1100px; margin: 0 auto 16px; }
+    .row { display:flex; gap:10px; align-items:baseline; flex-wrap:wrap; }
+    .btn { padding:10px 18px; border-radius:14px; cursor:pointer; text-decoration:none; display:inline-block; }
+    /* highlight for keywords */
+    .hl { background: #fff3a3; padding: 0 2px; border-radius: 3px; }
+    /* small chips for current values */
+    .chip { padding: 6px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; margin-left: 6px; }
+  </style>
+</head>
+<body>
+  {% set author_first = (row.get('lp_lead_first_name') or '')|trim %}
+  {% set author_last  = (row.get('lp_lead_last_name')  or '')|trim %}
+  {% set author_name  = (author_first ~ ' ' ~ author_last)|trim %}
+  {% set author_url   = (row.get('lp_contacted_lead_linkedin') or '')|trim %}
+  {% set company_name = (row.get('lp_company_name') or '')|trim %}
+  {% set company_url  = (row.get('lp_company_linkedin') or '')|trim %}
+  {% set post_text    = row.get('lp_linkedin_post') or '' %}
+  {% set post_url     = (row.get('lp_base_post_url') or '')|trim %}
+  {% set lp_summary   = (row.get('lp_summary') or '')|trim %}
+  {% set lp_classifier   = (row.get('lp_classifier') or '')|trim %}
+  {% set position     = (row.get('global_relation_to_the_company') or row.get('lp_relation_to_the_company') or '')|trim %}
+  {% set company_linkedin_clean = (
+      row.get('global_company_linkedin')
+      or row.get('lp_company_linkedin_cleaned')
+      or row.get('lp_company_linkedin')
+      or ''
+    )|trim %}
+  {% set kw_partner   = 'partnership' %}
+  {% set kw_expand    = 'expansion' %}
+  {% set kw_ceo       = 'ceo' %}
+  {% set kw_founder   = 'founder' %}
+  {% set kw_region    = 'czech OR slovak OR prague' %}
+  {% set kw_strategy  = 'strategy' %}
+  {% set url_partner  = company_linkedin_clean ~ '/people/?keywords=' ~ kw_partner if company_linkedin_clean else '' %}
+  {% set url_expand   = company_linkedin_clean ~ '/people/?keywords=' ~ kw_expand if company_linkedin_clean else '' %}
+  {% set url_ceo      = company_linkedin_clean ~ '/people/?keywords=' ~ kw_ceo if company_linkedin_clean else '' %}
+  {% set url_founder  = company_linkedin_clean ~ '/people/?keywords=' ~ kw_founder if company_linkedin_clean else '' %}
+  {% set url_region   = company_linkedin_clean ~ '/people/?keywords=' ~ kw_region|replace(' ', '%20') if company_linkedin_clean else '' %}
+  {% set url_strategy = company_linkedin_clean ~ '/people/?keywords=' ~ kw_strategy if company_linkedin_clean else '' %}
+
+  {# normalize values for display #}
+  {% set rel_raw = (row.get('relevant') or '')|trim %}
+  {% set rel_l   = rel_raw|lower %}
+  {% if rel_l in ['y','yes','true','1'] %}
+    {% set rel_val = 'y' %}
+  {% elif rel_l in ['n','no','false','0'] %}
+    {% set rel_val = 'n' %}
+  {% elif rel_l == 'cc' %}
+    {% set rel_val = 'CC' %}
+  {% else %}
+    {% set rel_val = '' %}
+  {% endif %}
+  {% if rel_val == 'y' %}
+    {% set rel_style = 'background:#e6ffed;border:1px solid #34a853;color:#137333;' %}
+  {% elif rel_val == 'n' %}
+    {% set rel_style = 'background:#ffecec;border:1px solid #ea4335;color:#b00020;' %}
+  {% elif rel_val == 'CC' %}
+    {% set rel_style = 'background:#f8e1ff;border:1px solid #9c27b0;color:#4a148c;' %}
+  {% else %}
+    {% set rel_style = 'background:#f1f3f4;border:1px solid #dadce0;color:#5f6368;' %}
+  {% endif %}
+
+  {% set ld_raw = (row.get('learning_data') or row.get('lp_learning_data') or '')|trim %}
+  {% set ld_l   = ld_raw|lower %}
+  {% set ld_val = 'y' if ld_l in ['y','yes','true','1'] else ('n' if ld_l in ['n','no','false','0'] else '') %}
+  {% set ld_style = 'background:#e6ffed;border:1px solid #34a853;color:#137333;' if ld_val == 'y'
+                   else ('background:#ffecec;border:1px solid #ea4335;color:#b00020;' if ld_val == 'n'
+                   else 'background:#f1f3f4;border:1px solid #dadce0;color:#5f6368;') %}
+
+  <div class="card">
+    <div class="row">
+      <div style="font-weight:800; font-size:26px;">
+        {% if author_name and author_url %}
+          <a href="{{ author_url }}" target="_blank" rel="noopener noreferrer" style="color:#5b2aa7; text-decoration:none;">{{ author_name }}</a>
+        {% else %}
+          <span style="color:#5b2aa7;">{{ author_name or 'Unknown Author' }}</span>
+        {% endif %}
+      </div>
+      <div style="color:#8a8a8a; font-size:18px;">at</div>
+      <div style="font-weight:800; font-size:26px;">
+        {% if company_name and company_url %}
+          <a href="{{ company_url }}" target="_blank" rel="noopener noreferrer" style="color:#5b2aa7; text-decoration:none;">{{ company_name }}</a>
+        {% else %}
+          <span style="color:#5b2aa7;">{{ company_name or 'Unknown Company' }}</span>
+        {% endif %}
+      </div>
+      <span style="margin-left:auto; color:#888; font-size:14px;">{{ progress.index }} / {{ progress.total }}</span>
+    </div>
+    {% if position %}
+      <div style="color:#5a5a5a; font-size:16px; margin-top:4px;">
+        Position: <strong>{{ position }}</strong>
+      </div>
+    {% endif %}
+
+    <div style="display:flex; gap:14px; margin-top:14px; flex-wrap:wrap;">
+      {% if post_url %}
+        <a href="{{ post_url }}" target="_blank" rel="noopener noreferrer"
+           class="btn" style="background:#d9d9d9; color:#333;">
+          Open LinkedIn post
+        </a>
+      {% else %}
+        <button class="btn" disabled style="background:#d9d9d9; color:#555;">Open LinkedIn post</button>
+      {% endif %}
+    </div>
+
+    <hr style="margin:14px 0 10px; border:none; border-top:1px solid #aaa;">
+
+    <!-- Actions and current values -->
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+      <form method="post" id="labelForm" style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+        <input type="hidden" name="row_idx" value="{{ row_idx }}">
+        <button name="action" value="label_y" id="btnY"
+                class="btn" style="border:2px solid #6aa3ff; color:#2a5bd7; background:#eef4ff;">YES</button>
+        <button name="action" value="label_n" id="btnN"
+                class="btn" style="border:2px solid #ff7a7a; color:#b10000; background:#ffecec;">NO</button>
+        <button name="action" value="label_n_learning" id="btnNL"
+                class="btn" style="border:2px solid #e8d98f; color:#745e00; background:#fff7cf;">
+          NO — but add to learning data
+        </button>
+        {% if lp_mode == 'czech' %}
+          <button name="action" value="label_cc" id="btnCC"
+                  class="btn" style="border:2px solid #9c27b0; color:#4a148c; background:#f8e1ff;">
+            Compliance Checkpoint
+          </button>
+        {% endif %}
+        <button name="action" value="skip" id="btnSkip"
+                class="btn" style="border:2px solid #e8d98f; color:#745e00; background:#fff7cf;">Skip</button>
+        <button name="action" value="prev" id="btnPrev"
+                class="btn" style="background:#d9d9d9; color:#333; border:none;">Back</button>
+        <span style="color:#000; margin-left:6px;">--&gt;</span>
+        <button name="action" value="finish_labeling"
+                class="btn" style="margin-left:6px; background:#5b2aa7; color:#fff; border:none;">Finish labeling</button>
+      </form>
+
+      <!-- Status chips: show current values from the CSV -->
+      <div style="display:flex; align-items:center; flex-wrap:wrap;">
+        <span class="chip" style="{{ rel_style }}">relevant: {{ rel_val or 'unset' }}</span>
+        <span class="chip" style="{{ ld_style }}">learning_data: {{ ld_val or 'unset' }}</span>
+      </div>
+    </div>
+  </div>
+
+  {% if lp_summary %}
+    <div style="line-height:1.4; margin:8px auto; font-size:14px; color:#444; max-width:1100px;">
+      {% set lines = lp_summary.split('\n') %}
+      {% for line in lines %}
+        {{ line|trim }}
+        {% if not loop.last %}<br>{% endif %}
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {% if lp_classifier %}
+    <div style="line-height:1.4; margin:8px auto; font-size:14px; color:#444; max-width:1100px;">
+      Classifier: <strong>{{ lp_classifier }}</strong>
+    </div>
+  {% endif %}
+
+  <!-- Post body (preserve line breaks and highlight keywords) -->
+  <div class="card" style="white-space: pre-wrap; line-height:1.4; min-height:120px;">
+    {{ post_text | highlight_lp_keywords | safe }}
+  </div>
+
+  {% if enrich_open %}
+    {% set pre_name = ((row.get('global_first_name','') ~ ' ' ~ row.get('global_last_name',''))|trim) or ((row.get('lp_lead_first_name','') ~ ' ' ~ row.get('lp_lead_last_name',''))|trim) %}
+    {% set pre_linkedin = (row.get('global_linkedin_url') or row.get('lp_contacted_lead_linkedin') or '') %}
+    {% set pre_relation = (row.get('global_relation_to_the_company') or row.get('lp_relation_to_the_company') or '') %}
+    {% set pre_company  = (row.get('global_company_name_raw') or row.get('lp_company_name') or '') %}
+    {% set pre_website  = (row.get('global_domain_norm') or row.get('lp_company_website') or '') %}
+    {% set pre_comp_li  = (row.get('global_company_linkedin') or row.get('lp_company_linkedin_cleaned') or row.get('lp_company_linkedin') or '') %}
+
+    <div class="card" style="border-color:#cdb7ff;">
+      <h3 style="margin:0 0 10px; color:#5b2aa7;">Enrich</h3>
+      {% if company_linkedin_clean %}
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin: 8px 0 12px;">
+          <a class="btn" href="{{ url_partner }}" target="_blank" rel="noopener noreferrer" style="background:#e8e2ff; color:#4a2bb8;">Partnership</a>
+          <a class="btn" href="{{ url_expand }}" target="_blank" rel="noopener noreferrer" style="background:#e8e2ff; color:#4a2bb8;">Expansion</a>
+          <a class="btn" href="{{ url_ceo }}" target="_blank" rel="noopener noreferrer" style="background:#e8e2ff; color:#4a2bb8;">CEO</a>
+          <a class="btn" href="{{ url_founder }}" target="_blank" rel="noopener noreferrer" style="background:#e8e2ff; color:#4a2bb8;">Founder</a>
+          <a class="btn" href="{{ url_strategy }}" target="_blank" rel="noopener noreferrer" style="background:#e8e2ff; color:#4a2bb8;">Strategy</a>
+          <a class="btn" href="{{ url_region }}" target="_blank" rel="noopener noreferrer" style="background:#e8e2ff; color:#4a2bb8;">Region</a>
+          <button type="button" class="btn" style="background:#5b2aa7; color:#fff;" onclick="openAllSearches([
+            '{{ url_partner }}','{{ url_expand }}','{{ url_ceo }}','{{ url_founder }}','{{ url_strategy }}','{{ url_region }}'
+          ])">Open all</button>
+        </div>
+      {% endif %}
+      <form method="post">
+        <input type="hidden" name="row_idx" value="{{ row_idx }}">
+
+        <div style="display:grid; grid-template-columns: 220px 1fr; gap:10px; align-items:center; margin-bottom:10px;">
+          <label for="enrich_company_name"><strong>Company name</strong></label>
+          <input type="text" id="enrich_company_name" name="enrich_company_name" value="{{ pre_company }}" style="width:100%; padding:8px; border-radius:8px; border:1px solid #ccc;">
+        </div>
+
+        <div style="display:grid; grid-template-columns: 220px 1fr; gap:10px; align-items:center; margin-bottom:14px;">
+          <label for="enrich_company_linkedin"><strong>Company LinkedIn</strong></label>
+          <input type="text" id="enrich_company_linkedin" name="enrich_company_linkedin" value="{{ pre_comp_li }}" style="width:100%; padding:8px; border-radius:8px; border:1px solid #ccc;">
+        </div>
+
+        <div style="display:grid; grid-template-columns: 220px 1fr; gap:10px; align-items:center; margin-bottom:10px;">
+          <label for="enrich_company_website"><strong>Company website</strong></label>
+          <input type="text" id="enrich_company_website" name="enrich_company_website" value="{{ pre_website }}" style="width:100%; padding:8px; border-radius:8px; border:1px solid #ccc;">
+        </div>
+
+        <hr style="margin:6px 0 12px; border:none; border-top:1px dashed #d0c7f2;">
+
+        <div style="display:grid; grid-template-columns: 220px 1fr; gap:10px; align-items:center; margin-bottom:10px;">
+          <label for="enrich_full_name"><strong>Full name</strong></label>
+          <input type="text" id="enrich_full_name" name="enrich_full_name" value="{{ pre_name }}" style="width:100%; padding:8px; border-radius:8px; border:1px solid #ccc;">
+        </div>
+
+        <div style="display:grid; grid-template-columns: 220px 1fr; gap:10px; align-items:center; margin-bottom:10px;">
+          <label for="enrich_linkedin"><strong>LinkedIn (person)</strong></label>
+          <input type="text" id="enrich_linkedin" name="enrich_linkedin" value="{{ pre_linkedin }}" style="width:100%; padding:8px; border-radius:8px; border:1px solid #ccc;">
+        </div>
+
+        <div style="display:grid; grid-template-columns: 220px 1fr; gap:10px; align-items:flex-start; margin-bottom:10px;">
+          <label for="enrich_relation"><strong>Relation to the company</strong></label>
+          <textarea id="enrich_relation" name="enrich_relation" rows="3" style="width:100%; padding:8px; border-radius:8px; border:1px solid #ccc;">{{ pre_relation }}</textarea>
+        </div>
+
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <button name="action" value="save_enrich" class="btn" style="background:#5b2aa7; color:#fff; border:none;">
+            Save changes
+          </button>
+          <button name="action" value="save_enrich_stay" class="btn" style="background:#1976d2; color:#fff; border:none;">
+            Save & stay
+          </button>
+          <button name="action" value="close_enrich" class="btn" type="submit" style="background:#d9d9d9; color:#333; border:none;">Close</button>
+        </div>
+      </form>
+    </div>
+  {% endif %}
+
+  <!-- Master company search (optional helper) -->
+  <div class="card" style="margin-top:12px; padding:12px; border:1px solid #eee; border-radius:12px;">
+    <form method="post" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+      <input type="hidden" name="action" value="master_search">
+      <label for="master_query"><strong>Search master (company):</strong></label>
+      <input id="master_query" name="master_query" type="text"
+             value="{{ master_query or '' }}"
+             placeholder="Type company name"
+             style="padding:6px 8px; border-radius:8px; border:1px solid #ccc; min-width:280px;">
+      <button type="submit" class="btn" style="padding:8px 12px; border:none; border-radius:10px; background:#5b2aa7; color:#fff;">
+        Search
+      </button>
+    </form>
+
+    {% if master_query %}
+      {% if master_results and master_results|length > 0 %}
+        <div style="margin-top:10px; overflow:auto;">
+          <table style="border-collapse:collapse; width:100%; font-size:13px;">
+            <thead>
+              <tr>
+                {% for k in master_results[0].keys() %}
+                  <th style="text-align:left; border-bottom:1px solid #eee; padding:6px;">{{ k }}</th>
+                {% endfor %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in master_results %}
+                <tr>
+                  {% for v in row.values() %}
+                    <td style="border-bottom:1px solid #f5f5f5; padding:6px; vertical-align:top;">{{ v }}</td>
+                  {% endfor %}
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+
+      {% if master_partial_results and master_partial_results|length > 0 %}
+        <div style="margin-top:10px; font-weight:600;">Partial matches ({{ master_partial_count }})</div>
+        <div style="margin-top:6px; overflow:auto;">
+          <table style="border-collapse:collapse; width:100%; font-size:13px;">
+            <thead>
+              <tr>
+                {% for k in master_partial_results[0].keys() %}
+                  <th style="text-align:left; border-bottom:1px solid #eee; padding:6px;">{{ k }}</th>
+                {% endfor %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in master_partial_results %}
+                <tr>
+                  {% for v in row.values() %}
+                    <td style="border-bottom:1px solid #f5f5f5; padding:6px; vertical-align:top;">{{ v }}</td>
+                  {% endfor %}
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% elif master_query and not master_has_match %}
+        <div style="margin-top:8px; color:#666;">No match for “{{ master_query }}”.</div>
+      {% endif %}
+    {% endif %}
+  </div>
+
+  <p style="text-align:center; margin-top:16px;">
+    {% if lp_mode == 'czech' %}
+      <a href="{{ url_for('leadspicker_czech') }}">← Back to Leadspicker (Czech)</a>
+    {% else %}
+      <a href="{{ url_for('leadspicker') }}">← Back to Leadspicker</a>
+    {% endif %}
+  </p>
+
+  <!-- Keyboard shortcuts -->
+  <script>
+  (function(){
+    const byId = (id) => document.getElementById(id);
+    const clearSearch = () => { const inp = document.getElementById('master_query'); if (inp) inp.value=''; };
+    // Clear search input on these actions for instant UI feedback
+    ['btnY','btnN','btnNL','btnSkip','btnPrev'].forEach(id => {
+      const el = byId(id);
+      if (el) el.addEventListener('click', clearSearch);
+    });
+
+    const isTypingTarget = (el) => {
+      if (!el) return false;
+      const tag = el.tagName ? el.tagName.toLowerCase() : "";
+      return tag === "input" || tag === "textarea" || el.isContentEditable;
+    };
+    document.addEventListener("keydown", (e) => {
+      if (isTypingTarget(document.activeElement)) return;
+      if (e.key === "y" || e.key === "Y") { e.preventDefault(); byId("btnY")?.click(); }
+      else if (e.key === "n" || e.key === "N") { e.preventDefault(); byId("btnN")?.click(); }
+      else if (e.key === "ArrowRight") { e.preventDefault(); byId("btnSkip")?.click(); }
+      else if (e.key === "ArrowLeft") { e.preventDefault(); byId("btnPrev")?.click(); }
+    });
+  })();
+
+  function openAllSearches(links) {
+    if (!Array.isArray(links)) return;
+    links.forEach((u, idx) => {
+      if (u && typeof u === "string" && u.trim() !== "") {
+        const delay = idx * 120; // stagger to avoid popup blockers
+        setTimeout(() => window.open(u, "_blank", "noopener,noreferrer"), delay);
+      }
+    });
+  }
+  </script>
+</body>
+</html>

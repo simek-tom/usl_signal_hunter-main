@@ -1,0 +1,225 @@
+<!-- app/templates/leadspicker/leadspicker.html -->
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Leadspicker</title>
+  <style>
+    body { font-family: system-ui, Arial, sans-serif; margin: 24px; }
+    .row { display:flex; gap:24px; align-items:flex-start; flex-wrap: wrap; }
+    .card { border:1px solid #ddd; border-radius:10px; padding:16px; background:#fff; max-width:520px; width:100%; }
+    button { padding:10px 14px; border-radius:8px; border:1px solid #ccc; cursor:pointer; }
+    table { border-collapse:collapse; width:100%; margin-top:16px; }
+    th, td {
+      border: 1px solid #eee;
+      padding: 6px 8px;
+      font-size: 14px;
+      height: 50px;            /* NEW: fixed row height */
+      overflow: hidden;        /* hide extra text */
+      text-overflow: ellipsis; /* show "…" when clipped */
+      white-space: nowrap;     /* keep on one line */
+      vertical-align: top;     /* optional: align text to top */
+    }
+    th { background:#fafafa; text-align:left; }
+    .msg{ margin:12px 0; color:#333; }
+    ul { margin: 8px 0 0 18px; padding: 0; }
+    li { margin: 2px 0; }
+    input[type="text"] { padding: 8px; width: 100%; max-width: 240px; }
+    .actions { margin-top:16px; display:flex; gap:12px; align-items:center; } /* NEW */
+  </style>
+</head>
+<body>
+  <h1>
+    Leadspicker — Import
+    {% if lp_mode == 'czech' %}(Czech-focused){% else %}(General){% endif %}
+  </h1>
+
+  {% if message %}<div class="msg">{{ message }}</div>{% endif %}
+
+  <div class="row">
+    <!-- ====================== API IMPORT SECTION ====================== -->
+    <div class="card">
+      <h3>Import via API</h3>
+
+      <!-- A) Request Project IDs -->
+      <form method="post" style="margin-bottom:12px">
+        <input type="hidden" name="action" value="list_projects">
+        <button type="submit">Request Project IDs</button>
+      </form>
+
+      {% if projects and projects|length %}
+        <div style="max-height:180px; overflow:auto; border:1px dashed #ddd; padding:8px; border-radius:8px; margin-bottom:12px">
+          <strong>Projects returned:</strong>
+          <ul>
+            {% for p in projects %}
+              <li><code>{{ p.id }}</code> — {{ p.name }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+
+      <!-- B) Fetch Project -->
+      <form method="post">
+        <label for="project_ids"><strong>Project ID(s)</strong> (comma-separated):</label><br>
+        <input
+          type="text"
+          id="project_ids"
+          name="project_ids"
+          value="{% if lp_mode == 'czech' %}25828{% else %}28955{% endif %}"
+          placeholder="28955, 12345"
+        >
+        <input type="hidden" name="action" value="api_fetch">
+        <div style="margin-top:8px">
+          <button type="submit">Fetch Project</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- ====================== MANUAL UPLOAD SECTION ====================== -->
+    <div class="card">
+      <h3>Manual Import</h3>
+      <form method="post" enctype="multipart/form-data">
+        <input type="file" name="file" accept=".csv">
+        <input type="hidden" name="action" value="manual">
+        <div style="margin-top:8px">
+          <button type="submit">Upload & Process</button>
+        </div>
+        <p style="font-size:12px;color:#666;margin-top:8px">
+          CSV must be UTF-8 and use “;” as delimiter.
+        </p>
+      </form>
+    </div>
+  </div>
+
+  {% if rows and rows|length %}
+    <div class="actions">
+      <!-- Drop duplicates is always available after import -->
+      <form method="post">
+        <input type="hidden" name="action" value="drop_dupes">
+        <button type="submit">Drop records already in master</button>
+      </form>
+
+      <!-- Show ANALYZE only after duplicates have been dropped -->
+      {% if ready_to_analyze %}
+        <a href="{% if lp_mode == 'czech' %}{{ url_for('leadspicker_analyze_czech') }}{% else %}{{ url_for('leadspicker_analyze') }}{% endif %}">
+          <button>ANALYZE</button>
+        </a>
+      {% endif %}
+    </div>
+
+  <hr style="margin:16px 0;">
+
+    <!-- EXISTING: Single preview block (removed duplicate) -->
+    <h3>Preview (first {{ rows|length }} rows)</h3>
+    <div style="overflow:auto">
+      <table>
+        <thead>
+          <tr>
+            {% for c in columns %}<th>{{ c }}</th>{% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in rows %}
+            <tr>
+              {% for c in columns %}<td title="{{ r.get(c, '') }}">{{ r.get(c, "") }}</td>{% endfor %}
+              <!-- NOTE: added title= to show full text on hover -->
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+
+  <!-- New: Analysis controls -->
+  <section style="margin-top: 1.5rem; padding: 1rem; border: 1px solid #ddd; border-radius: 8px;">
+    <h3>Analysis (labeling)</h3>
+
+    <form method="post" style="margin-bottom: 1rem;">
+      <input type="hidden" name="action" value="start_analysis">
+      <button type="submit" class="btn btn-primary">Start analysis</button>
+      {% if current_analysis_name %}
+        <span style="margin-left: 0.5rem; color: #555;">
+          Current analysis file: {{ current_analysis_name }}
+        </span>
+      {% else %}
+        <span style="margin-left: 0.5rem; color: #999;">
+          Tip: Drop duplicates first to create a fresh analysis file.
+        </span>
+      {% endif %}
+    </form>
+
+    <form method="post">
+      <input type="hidden" name="action" value="load_analysis">
+      <label for="analysis_path"><strong>Load existing analysis file</strong></label>
+      <select id="analysis_path" name="analysis_path" style="margin: 0 0.5rem;">
+        {% for f in recent_analysis_files %}
+          <option value="{{ f }}">{{ f.name }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn btn-secondary">Load</button>
+      <div style="margin-top: 0.5rem; color: #777; font-size: 0.9em;">
+        Showing up to {{ recent_analysis_files|length }} recent files from data/leadspicker/analyzed.
+      </div>
+    </form>
+  </section>
+
+  <!-- Draft messages -->
+<section class="card" style="margin-top:16px; padding:16px; border:1px solid #ddd; border-radius:12px;">
+  <h2 style="margin:0 0 10px;">Draft messages</h2>
+  <form method="post" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+    <input type="hidden" name="action" value="open_draft_messages" />
+    <label for="analysis_for_draft"><strong>Select analyzed file:</strong></label>
+    <select id="analysis_for_draft" name="analysis_for_draft" style="padding:6px 8px; border-radius:8px; border:1px solid #ccc;">
+      {% for f in recent_analysis_files %}
+        <option value="{{ f }}" {% if f.name == current_analysis_name %}selected{% endif %}>{{ f.name }}</option>
+      {% endfor %}
+      {% if not recent_analysis_files or recent_analysis_files|length == 0 %}
+        <option disabled selected>No analyzed files</option>
+      {% endif %}
+    </select>
+    <button type="submit" class="btn" style="padding:8px 14px; border-radius:10px; background:#5b2aa7; color:#fff; border:none;">
+      Draft messages
+    </button>
+  </form>
+  <div style="margin-top:6px; color:#666; font-size:12px;">
+    Folder: {{ analysis_dir }}
+  </div>
+</section>
+
+<!-- New section: Push drafted to Leadspicker (WIP) -->
+<section class="card" style="margin-top:16px; padding:16px; border:1px solid #ddd; border-radius:12px;">
+  <h2 style="margin:0 0 10px;">Push drafted to Leadspicker (WIP)</h2>
+  <form method="post" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+    <input type="hidden" name="action" value="push_drafted_wip" />
+    <label for="drafted_file"><strong>Drafted file:</strong></label>
+    <select id="drafted_file" name="drafted_file" style="padding:6px 8px; border-radius:8px; border:1px solid #ccc;">
+      {% for f in drafted_files or [] %}
+        <option value="{{ f }}" {% if f == latest_drafted %}selected{% endif %}>{{ f }}</option>
+      {% endfor %}
+      {% if not drafted_files or drafted_files|length == 0 %}
+        <option disabled selected>No files in drafted_messages</option>
+      {% endif %}
+    </select>
+
+    <label for="project_id"><strong>Project ID:</strong></label>
+    <input
+      id="project_id"
+      name="project_id"
+      type="text"
+      value="{% if lp_mode == 'czech' %}25833{% else %}18010{% endif %}"
+      placeholder="e.g. 12345"
+      style="width:120px; padding:6px 8px; border-radius:8px; border:1px solid #ccc;"
+    />
+
+    <button type="submit" class="btn" style="padding:8px 14px; border-radius:10px; background:#5b2aa7; color:#fff; border:none;">
+      Push (WIP)
+    </button>
+  </form>
+  <div style="margin-top:6px; color:#666; font-size:12px;">
+    Uses POST /app/sb/api/persons with your API key. Currently limited to 50 rows and provisional field mapping.
+  </div>
+</section>
+
+  <p style="margin-top:24px"><a href="{{ url_for('index') }}">Back to Main Menu</a></p>
+</body>
+</html>

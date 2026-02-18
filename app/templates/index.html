@@ -1,0 +1,99 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Main Menu</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+      body {
+        font-family: 'Roboto', sans-serif;
+        display: flex;
+        justify-content: center; /* center horizontally */
+        align-items: center;    /* center vertically */
+        height: 100vh;          /* full height of the screen */
+    margin: 0;
+  background: #f5efe4;
+      }
+
+      .container {
+        text-align: center;
+      }
+
+      h1 {
+        font-weight: 700;
+        margin-bottom: 10px;
+      }
+
+      h2 {
+        font-weight: 400;
+        color: #555;
+        margin-bottom: 30px;
+      }
+
+      .menu {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+      }
+
+      .menu button {
+        background: white;
+        border: 2px solid #007BFF;
+        border-radius: 10px;
+        padding: 10px;
+        cursor: pointer;
+        width: 150px;
+        height: 150px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+      }
+
+      .menu button:hover {
+        background: #007BFF;
+        color: white;
+      }
+
+      .menu img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Main Menu</h1>
+      <h2>Choose one of the three source options</h2>
+
+      <div class="menu">
+        <a href="{{ url_for('leadspicker_menu') }}">
+            <button>
+            <img src="{{ url_for('static', filename='img/leadspicker_logo.png') }}" alt="Leadspicker">
+            </button>
+        </a>
+
+        <a href="{{ url_for('crunchbase') }}">
+            <button>
+            <img src="{{ url_for('static', filename='img/crunchbase_logo.png') }}" alt="Crunchbase">
+            </button>
+        </a>
+
+        <a href="{{ url_for('news') }}">
+            <button>
+            <img src="{{ url_for('static', filename='img/news_logo.png') }}" alt="News">
+            </button>
+        </a>
+
+        <a href="{{ url_for('other') }}">
+            <button>
+            <img src="{{ url_for('static', filename='img/other_logo.png') }}" alt="Other">
+            </button>
+        </a>
+        </div>
+
+    </div>
+  </body>
+</html>

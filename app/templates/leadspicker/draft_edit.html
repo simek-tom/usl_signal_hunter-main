@@ -1,0 +1,59 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Edit drafted records — {{ path_name }}</title>
+  <style>
+    body { font-family: system-ui, Arial, sans-serif; margin: 24px; }
+    .card { border:1px solid #ddd; border-radius:16px; padding:18px 20px; max-width:1200px; margin: 0 auto 16px; }
+    table { width:100%; border-collapse:collapse; font-size:14px; }
+    th, td { padding:8px; border-bottom:1px solid #eee; vertical-align:top; }
+    th { text-align:left; color:#555; }
+    .muted { color:#666; }
+    .scroll-cell { max-height:140px; overflow:auto; background:#fafafa; padding:8px; border:1px solid #eee; border-radius:8px; }
+    .btn { padding:10px 16px; border-radius:12px; cursor:pointer; text-decoration:none; display:inline-block; border:none; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px;">
+      <div style="font-weight:800; font-size:22px; color:#5b2aa7;">Edit drafted records</div>
+      <div class="muted">File: {{ path_name }}</div>
+    </div>
+    <form method="post">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:40px;">Remove</th>
+            <th style="width:220px;">Person</th>
+            <th style="width:200px;">Company</th>
+            <th style="width:80px;">Is author?</th>
+            <th style="width:120px;">From company?</th>
+            <th>Post text</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+            <tr>
+              <td><input type="checkbox" name="remove_ids" value="{{ row.idx }}" {% if row.checked %}checked{% endif %}></td>
+              <td>
+                <div><strong>{{ row.name }}</strong></div>
+                <div class="muted">{{ row.position }}</div>
+              </td>
+              <td>{{ row.company }}</td>
+              <td>{{ row.is_author }}</td>
+              <td>{{ row.is_from_company }}</td>
+              <td><div class="scroll-cell">{{ row.post_text }}</div></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <div style="display:flex; gap:10px; margin-top:14px; flex-wrap:wrap;">
+        <button name="action" value="save" class="btn" style="background:#5b2aa7; color:#fff;">Save selections</button>
+        <button name="action" value="back" class="btn" style="background:#4caf50; color:#fff;">Back to drafting</button>
+      </div>
+    </form>
+  </div>
+</body>
+</html>

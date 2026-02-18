@@ -1,0 +1,98 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>News</title>
+  <style>
+    body { font-family: system-ui, Arial, sans-serif; margin: 24px; background: #f6f4f0; }
+    h1 { margin: 0 0 6px; }
+    p.sub { margin: 0 0 18px; color: #555; }
+    .row { display: flex; gap: 16px; flex-wrap: wrap; align-items: stretch; }
+    .card { background: #fff; border: 1px solid #e2ddd4; border-radius: 12px; padding: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.04); flex: 1 1 280px; }
+    .card h3 { margin-top: 0; }
+    .msg { margin: 12px 0 16px; padding: 10px 12px; background: #eef6ff; border: 1px solid #c8ddff; border-radius: 8px; color: #1f4b99; }
+    form { margin: 0; }
+    input[type="file"], input[type="text"], input[type="date"] { padding: 8px; border: 1px solid #ccc; border-radius: 8px; width: 100%; box-sizing: border-box; }
+    button { padding: 10px 14px; border-radius: 8px; border: 1px solid #3b4a2e; background: #3b4a2e; color: #fff; cursor: pointer; }
+    button.ghost { background: #fff; color: #3b4a2e; }
+    .hint { margin: 8px 0 0; color: #777; font-size: 13px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 12px; }
+    th, td { border: 1px solid #eee; padding: 6px 8px; font-size: 14px; height: 46px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: top; }
+    th { background: #fafafa; text-align: left; }
+    .table-wrap { overflow: auto; }
+  </style>
+</head>
+<body>
+  <h1>News — Import</h1>
+  <p class="sub">Pull fresh articles, normalize them, and preview before labeling.</p>
+
+  {% if message %}<div class="msg">{{ message }}</div>{% endif %}
+
+  <div class="row">
+    <div class="card">
+      <h3>Fetch from News API</h3>
+      <form method="post" style="display:flex; flex-direction:column; gap:8px;">
+        <input type="hidden" name="action" value="api_fetch">
+
+        <label for="query"><strong>Query</strong></label>
+        <input type="text" id="query" name="query" value="{{ form_query }}" placeholder="e.g. Series A AND expansion">
+
+        <label for="domains"><strong>Domains</strong> (optional)</label>
+        <input type="text" id="domains" name="domains" value="{{ form_domains }}" placeholder="techcrunch.com, reuters.com">
+
+        <label for="language"><strong>Language</strong></label>
+        <input type="text" id="language" name="language" value="{{ form_language }}">
+
+        <label for="from_date"><strong>From</strong> (optional)</label>
+        <input type="date" id="from_date" name="from_date" value="{{ form_from_date }}">
+
+        <label for="to_date"><strong>To</strong> (optional)</label>
+        <input type="date" id="to_date" name="to_date" value="{{ form_to_date }}">
+
+        <button type="submit">Fetch & Preview</button>
+      </form>
+      <p class="hint">Uses NEWS_API_KEY and NewsAPI v2.</p>
+    </div>
+
+    <div class="card">
+      <h3>Upload CSV export</h3>
+      <form method="post" enctype="multipart/form-data">
+        <input type="hidden" name="action" value="manual">
+        <input type="file" name="file" accept=".csv">
+        <div style="margin-top:8px;">
+          <button type="submit">Upload & Preview</button>
+        </div>
+      </form>
+      <p class="hint">CSV headers can be raw NewsAPI fields or normalized ones.</p>
+    </div>
+  </div>
+
+  {% if columns and rows %}
+    <div class="card" style="margin-top:16px;">
+      <h3>Preview</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              {% for col in columns %}
+                <th>{{ col }}</th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in rows %}
+              <tr>
+                {% for col in columns %}
+                  <td>{{ row.get(col, "") }}</td>
+                {% endfor %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {% endif %}
+
+  <p style="margin-top:18px;"><a href="{{ url_for('index') }}">Back to Main Menu</a></p>
+</body>
+</html>
